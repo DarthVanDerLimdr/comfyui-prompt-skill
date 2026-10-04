@@ -65,12 +65,28 @@ git clone https://github.com/DarthVanDerLimdr/comfyui-prompt-skill.git
 
 需要两个文件夹，**名字必须一模一样**：
 
-- `flux2-dev-prompt-engineering` — 对应「目标模型 = flux2-dev」
-- `qwen-image-2-1-prompter` — 对应「目标模型 = qwen-image-2-1」
+- `flux2-dev-prompt-engineering` — 对应「目标模型 = flux2-dev」→ **本仓库已附带**（见 `skills/`）
+- `qwen-image-2-1-prompter` — 对应「目标模型 = qwen-image-2-1」→ 需自备
 
 每个文件夹里要有 `SKILL.md`；有 `references/` 子目录的话里面的 md 会一起读进去。
 
-> skill 是提示词规范文档（Markdown），不含可执行内容。本项目**不分发**这些规范文件，请自行准备或使用你惯用的那份。
+**flux2 那份直接拷过去就能用：**
+
+```bash
+mkdir -p ~/.agents/skills
+cp -r skills/flux2-dev-prompt-engineering ~/.agents/skills/
+```
+
+Windows（PowerShell）：
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.agents\skills" | Out-Null
+Copy-Item -Recurse "skills\flux2-dev-prompt-engineering" "$env:USERPROFILE\.agents\skills\"
+```
+
+拷完重跑即可，**不用重启 ComfyUI**（skill 每次运行现读）。
+
+> **qwen 那份是第三方作品，本仓库不分发**，请自行准备。只用 FLUX.2 的话只放 flux2 那份就够了。
 
 ### 3. 目标模型怎么定
 
