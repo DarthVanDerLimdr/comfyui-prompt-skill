@@ -53,40 +53,33 @@ git clone https://github.com/DarthVanDerLimdr/comfyui-prompt-skill.git
 
 模型名和接口地址明显不匹配时会**当场拦住并告诉你该填什么**（比如方舟地址配 `deepseek-chat`），不会白跑一趟。
 
-### 2. 放上「skill」（提示词规范文件）
+### 2. skill（提示词规范文件）——**已随插件自带，装完即可用**
 
-优化节点**不内置规范**，它去这些位置找 skill 文件夹，**找不到就报错**：
+插件按下面的顺序找 skill 文件夹：
 
-1. `ComfyUI/output/workflow_llm/skills/`
-2. `~/.agents/skills/`  ← 默认位置
-3. `~/Documents/agent-skills/`
-4. `~/.claude/skills/`
-5. `~/.dsh/skills/`
+1. **插件自带 `skills/`** ← **本仓库已包含 flux2 那份，排在第一位，无需任何手动步骤**
+2. `ComfyUI/output/workflow_llm/skills/`
+3. `~/.agents/skills/`
+4. `~/Documents/agent-skills/`
+5. `~/.claude/skills/`
+6. `~/.dsh/skills/`
 
-需要两个文件夹，**名字必须一模一样**：
+所以把仓库 clone 进 `custom_nodes/` 之后，**flux2 的规范就自动生效**——不用拷文件，也不用重启。
 
-- `flux2-dev-prompt-engineering` — 对应「目标模型 = flux2-dev」→ **本仓库已附带**（见 `skills/`）
-- `qwen-image-2-1-prompter` — 对应「目标模型 = qwen-image-2-1」→ 需自备
+需要两个文件夹名，**必须一模一样**：
+
+- `flux2-dev-prompt-engineering` — 对应「目标模型 = flux2-dev」→ ✅ **本仓库自带**
+- `qwen-image-2-1-prompter` — 对应「目标模型 = qwen-image-2-1」→ 需自备（见下）
 
 每个文件夹里要有 `SKILL.md`；有 `references/` 子目录的话里面的 md 会一起读进去。
 
-**flux2 那份直接拷过去就能用：**
+**想换成自己那份 flux2 规范？** 放到上面第 2–6 条任一位置，并把仓库里的
+`skills/flux2-dev-prompt-engineering/` 删掉即可。
 
-```bash
-mkdir -p ~/.agents/skills
-cp -r skills/flux2-dev-prompt-engineering ~/.agents/skills/
-```
+> **qwen 那份是第三方作品，本仓库不分发。** 放到 `~/.agents/skills/qwen-image-2-1-prompter/` 即可。
+> 只用 FLUX.2 的话什么都不用做。
 
-Windows（PowerShell）：
-
-```powershell
-New-Item -ItemType Directory -Force "$env:USERPROFILE\.agents\skills" | Out-Null
-Copy-Item -Recurse "skills\flux2-dev-prompt-engineering" "$env:USERPROFILE\.agents\skills\"
-```
-
-拷完重跑即可，**不用重启 ComfyUI**（skill 每次运行现读）。
-
-> **qwen 那份是第三方作品，本仓库不分发**，请自行准备。只用 FLUX.2 的话只放 flux2 那份就够了。
+skill 是每次运行现读的，改完 `.md` **不用重启 ComfyUI**。
 
 ### 3. 目标模型怎么定
 
