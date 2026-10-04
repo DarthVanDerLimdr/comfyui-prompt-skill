@@ -19,7 +19,7 @@
 
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/<你的用户名>/comfyui-prompt-skill.git
+git clone https://github.com/DarthVanDerLimdr/comfyui-prompt-skill.git
 ```
 
 或直接把这个文件夹拷进 `ComfyUI/custom_nodes/`，重启 ComfyUI。
