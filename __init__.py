@@ -245,7 +245,15 @@ def load_config():
 
 # ------------------------------------------------------------------ skill 读取
 
+# 插件自带的 skill：随仓库一起走的 skills/ 目录（和 __init__.py 同级）。
+# 装了插件就等于有了这份规范，不用再去别处找文件。
+# 放在搜索顺序最前面 —— 用户在 ~/.agents/skills 里自己放的那份优先级更低，
+# 但只要自带这份存在，它就先被用上（想换成自己的，删掉自带目录即可）。
+_PLUGIN_DIR = os.path.dirname(os.path.abspath(__file__))
+BUNDLED_SKILLS_DIR = os.path.join(_PLUGIN_DIR, "skills")
+
 SKILL_ROOTS = [
+    BUNDLED_SKILLS_DIR,                                  # 插件自带（随仓库分发）
     os.path.join(_out_root(), "skills"),                 # 放插件的输出目录
     os.path.join(os.path.expanduser("~"), ".agents", "skills"),   # 默认位置
     os.path.expanduser("~/Documents/agent-skills"),
@@ -271,7 +279,15 @@ def load_skill(name):
     """读取一个 skill 的全部 md 内容（含 references）"""
     d = _find_skill_dir(name)
     if not d:
-        return None, f"找不到 skill 目录: {name}\n搜索过: " + " | ".join(SKILL_ROOTS)
+        hint = ""
+        if os.path.isdir(BUNDLED_SKILLS_DIR):
+            have = [x for x in os.listdir(BUNDLED_SKILLS_DIR)
+                    if os.path.isdir(os.path.join(BUNDLED_SKILLS_DIR, x))]
+            hint = f"\n插件自带 skills/ 里有: {have or '（空）'}"
+        else:
+            hint = f"\n（插件自带的 skills/ 目录不存在: {BUNDLED_SKILLS_DIR}）"
+        return None, (f"找不到 skill 目录: {name}\n搜索过: " + " | ".join(SKILL_ROOTS)
+                      + hint)
     parts = []
     for f in ["SKILL.md"] + sorted(glob.glob(os.path.join(d, "references", "*.md"))):
         p = f if os.path.isabs(f) else os.path.join(d, f)
@@ -1983,4 +1999,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PromptSkillCheck": "提示词合规自检 (本地)",
 }
 
-__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
+# 网页端扩展目录：里面的 js 会被前端自动加载。
+# 这里放的是「让画布支持把 .json 工作流文件直接拖进来」的补丁 ——
+# 官方前端 1.52.x 的拖入只处理图片（isImageFile 只认 image/*），
+# 拖 json 毫无反应，所以用扩展补上。
+WEB_DIRECTORY = "web"
+
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
