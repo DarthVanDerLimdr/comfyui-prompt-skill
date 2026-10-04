@@ -1384,6 +1384,37 @@ def _soften_negation(text):
     # 「呈现出柔和的过渡」误判成「出的 + 柔和」删掉（实测误伤过）。
     text = re.sub(r'((?:呈|现|显))的([\u4e00-\u9fff]{1,6})(?=[，、。；,;.]|$)', r'\1\2', text)
 
+    # 删掉「某张图没被用上」这类多余声明：
+    #   「图3与图4不参与本次合成。」「图3 的内容不会出现在结果里。」
+    #   "image 3 contributes nothing to the result" / "image 3 is not used here"
+    # 为什么必须程序化删：gate 里已经明说「没用的图干脆一个字都不提」，
+    # 但模型仍然爱补这么一句（实测输出过「图3与图4不参与本次合成」）。
+    # 它有两个害处：① 是多余的（没人问）② 带否定词（"不参与"），
+    # 而 FLUX.2 没有负向通道，写出来只会让模型去注意那张图。
+    # ⚠️ 必须在 if not n 之前 —— 这句本身就可能带「不」，但也可能是
+    # 「contributes nothing」这种没有中文否定的写法，只跟着 n 走会漏。
+    _UNUSED_IMG = re.compile(
+        r'(?:^|(?<=[。．.！!？?；;]))\s*'
+        r'(?:'
+        # 中文：图号后面**紧接着**就是否定 —— 这才是"这张图没用到"。
+        # ⚠️ 不能在「图N」和否定词之间允许任意文字：那样会把合法的
+        #    carry-over 声明（「图1原有的场景不进入结果」）也误删 —— 实测踩过。
+        #    合法声明的结构是「图N + 的/原有… + 名词 + 不进入」，中间有名词；
+        #    多余声明的结构是「图N(、图M…) + 不参与/未使用」，图号后直接跟否定。
+        r'图\s*\d+\s*(?:(?:、|,|，|与|和|及)\s*图\s*\d+\s*)*'
+        r'(?:均|都|也)?\s*'
+        r'(?:不参与|不参加|未参与|未使用|没用上)'
+        r'|image\s*\d+\s*(?:(?:and|,|、)\s*image\s*\d+\s*)*'
+        r'(?:contributes?\s+nothing|is\s+not\s+used|are\s+not\s+used)'
+        r')'
+        r'[^。．.！!？?；;\n]{0,40}[。．.！!？?；;]?',
+        re.I)
+    text = _UNUSED_IMG.sub('', text)
+    # 删句后可能留下多余空格或空标点，收一下尾
+    text = re.sub(r'[ \t]{2,}', ' ', text)
+    text = re.sub(r'([。．！!？?；;])[，,、；;]', r'\1', text)
+    text = re.sub(r'^[，,、；;\s]+', '', text)
+
     # ⚠️ 下面这些收尾只在**真的替换过**时才做。
     # 踩过的坑：无条件跑过一次，结果对没有任何否定的输入也做字符串拼接/删除，
     # 把句间空格吃掉了（"Sky: #6B8FF5. Hill:" → "#6B8FF5.Hill:"）。
@@ -1980,6 +2011,34 @@ class PromptSkillCheck:
         # 参考图编号
         if re.search(r"<image\d+>", text) and 目标模型 == "flux2-dev":
             issues.append("用了 <imageN> 标签 —— 这是 Qwen 的写法；[dev] 用 image 1 / image 2（英文+数字）")
+
+        # 精修/编辑段的重描述检测
+        # 机制：图生图那段不是加滤镜，而是「看着你的图 + 读你的提示词重新生成」。
+        # 所以描述 = 要求重画。把「保持不变」的东西又细描述一遍，等于给模型更多
+        # 机会重新解释它们 —— 上游那层真实感（毛孔、雀斑、细微不平整）就是这样被
+        # 磨平成塑料感的。判断依据不看总长度，只看「保持不变」之后跟了多少细节。
+        KEEP_MARK = re.compile(
+            r"(保持|维持|保留|沿用|不变|原样|unchanged|keep|preserve|retain|remain|same)", re.I)
+        DETAIL_WORD = re.compile(
+            r"(皮肤|毛孔|雀斑|质感|材质|纹理|褶皱|光泽|反光|氛围|色调|虚化|景深|构图|"
+            r"表情|眼神|发型|妆容|细节|光斑|阴影过渡|"
+            r"skin|pore|freckle|texture|material|fold|gloss|reflection|atmosphere|"
+            r"tone|palette|bokeh|composition|expression|gaze|hairstyle|detail)", re.I)
+        segs = re.split(r"(?<=[。．.!！?？；;\n])", text)
+        bad_seg = None
+        for s in segs:
+            if not KEEP_MARK.search(s):
+                continue
+            n = len(DETAIL_WORD.findall(s))
+            if n >= 3:
+                bad_seg = (s.strip()[:46], n)
+                break
+        if bad_seg:
+            issues.append(
+                f"⚠ 精修段重描述（「保持不变」那句里跟了 {bad_seg[1]} 个细节词："
+                f"“{bad_seg[0]}…”）—— 图生图/编辑那段是**重新生成**，不是刷滤镜："
+                f"描述什么就等于要求重画什么，上游的真实感会被磨平。"
+                f"改成「保持 A/B/C 不变，只改 D」，或直接用遮罩圈出要改的区域")
 
         report = f"【{目标模型} 合规自检】\n" + "\n".join("  · " + i for i in issues)
         p = _write(f"check-{slug(目标模型)}-{_ts()}.txt", report + "\n\n--- 原文 ---\n" + text)

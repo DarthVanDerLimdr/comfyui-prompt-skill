@@ -3,5 +3,9 @@ __pycache__/
 .venv/
 output/
 
+# 发布打包时产生的中间文件
+node.zip
+*.zip
+
 # 本地给自己看的条子，不参与发布
 【发布状态说明】.txt
