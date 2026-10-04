@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 .venv/
 output/
+
+# 本地给自己看的条子，不参与发布
+【发布状态说明】.txt
