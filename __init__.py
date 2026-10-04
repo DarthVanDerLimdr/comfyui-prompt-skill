@@ -1999,10 +1999,4 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PromptSkillCheck": "提示词合规自检 (本地)",
 }
 
-# 网页端扩展目录：里面的 js 会被前端自动加载。
-# 这里放的是「让画布支持把 .json 工作流文件直接拖进来」的补丁 ——
-# 官方前端 1.52.x 的拖入只处理图片（isImageFile 只认 image/*），
-# 拖 json 毫无反应，所以用扩展补上。
-WEB_DIRECTORY = "web"
-
-__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
