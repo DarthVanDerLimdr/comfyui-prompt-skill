@@ -1,0 +1,740 @@
+{
+  "id": "7d494c83-92a6-4fab-babb-a3c9398de5e7",
+  "revision": 0,
+  "last_node_id": 12,
+  "last_link_id": 7,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "Note",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        700,
+        340
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "提示词工具 — 带 skill 调 LLM 优化提示词\n\n【节点上能直接改的】\n  接口地址   —— 换服务商（DeepSeek/火山方舟/通义/Ollama 都可以，填 OpenAI 兼容的 /v1 地址）\n  API_KEY   —— 换 key，不用去改 json 文件\n  文字模型   —— 不接图时用（默认 deepseek-chat）\n  视觉模型   —— 接了图时用（默认 deepseek-flash，支持看图）\n\n【参考图】接一张就长出一个点（最多 10 张）\n  第 1 个点接上图 → 自动出现第 2 个点 …… 接满 10 个就不再长。\n  一个都不接 = 纯文生图；接了几张就算几张，\n  依次编号成 <image1>、<image2> ……（FLUX.2 [dev] 官方支持到 10 张）\n  接了任意一张 → 自动切视觉模型，模型先看图再写\n\n  ★ 用同一根线上再拉一路不方便时，直接从「图像」节点\n    输出口拖一条线到那个空点上就行。\n\n【思考强度】关闭 = 不思考，最快最省（写提示词推荐）；低/中/高 = 开启并调档\n\n【优化模式】\n  「仅输出将要发送的内容」= 干跑，不发请求、不花钱。\n  会把完整内容写成 txt，并把发给模型的图导出成 jpg —— 可以先核对再真跑。\n\n【输出看哪】画布里 ⑨ 和 ⑩ 两个显示节点直接显示；也落盘在 output\\workflow_llm\\"
+      ],
+      "widgets_values_named": {
+        "text": "提示词工具 — 带 skill 调 LLM 优化提示词\n\n【节点上能直接改的】\n  接口地址   —— 换服务商（DeepSeek/火山方舟/通义/Ollama 都可以，填 OpenAI 兼容的 /v1 地址）\n  API_KEY   —— 换 key，不用去改 json 文件\n  文字模型   —— 不接图时用（默认 deepseek-chat）\n  视觉模型   —— 接了图时用（默认 deepseek-flash，支持看图）\n\n【参考图】接一张就长出一个点（最多 10 张）\n  第 1 个点接上图 → 自动出现第 2 个点 …… 接满 10 个就不再长。\n  一个都不接 = 纯文生图；接了几张就算几张，\n  依次编号成 <image1>、<image2> ……（FLUX.2 [dev] 官方支持到 10 张）\n  接了任意一张 → 自动切视觉模型，模型先看图再写\n\n  ★ 用同一根线上再拉一路不方便时，直接从「图像」节点\n    输出口拖一条线到那个空点上就行。\n\n【思考强度】关闭 = 不思考，最快最省（写提示词推荐）；低/中/高 = 开启并调档\n\n【优化模式】\n  「仅输出将要发送的内容」= 干跑，不发请求、不花钱。\n  会把完整内容写成 txt，并把发给模型的图导出成 jpg —— 可以先核对再真跑。\n\n【输出看哪】画布里 ⑨ 和 ⑩ 两个显示节点直接显示；也落盘在 output\\workflow_llm\\"
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 12,
+      "type": "Note",
+      "pos": [
+        -380,
+        140
+      ],
+      "size": [
+        380,
+        780
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "目标模型判定说明",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "【目标模型怎么定】只读真实来源，不猜提示词文字\n\n★ 连紫线（推荐）\n  把左边 UNetLoader 的「模型」紫线接到\n  「②提示词优化」的「模型输入」上。只读文件名，\n  不加载模型、不占显存。\n\n★ 或把「目标模型」下拉改成 flux2-dev /\n  qwen-image-2-1（最省事，不用连线）\n\n就这两条来源。两条同时给了以紫线为准。\n没连线又没选下拉时它不会自己去画布上找\n加载器 —— 双模型图里扫到的那个不一定是\n这次要用的，会静默用错 skill。\n\n──────────────────────────\n【什么时候花 token】看「生成后控制」\n\n它和你采样器上那个同名同义，且自动跟着走：\n\n  采样器 fixed（不抽卡）\n    → 这里也 fixed。重跑多少次都跳过，\n      给上次那份结果，一字不差、0 token。\n\n  你把采样器切成 randomize（要抽卡）\n    → 切换那次自动重抽一份新提示词；\n      之后一直 randomize 就不重复花钱。\n\n  再切回 fixed → 也重抽一次，换回固定版。\n\n★ 想随时手动换一份：「优化模式」选「重新优化」\n\n改了这些会重调：提示词 / 目标模型 / 你的意图 /\n优化模式 / 思考强度 / 参考图\n（换文件名标签、换 key、换接口都不重调）\n\n──────────────────────────\n【自动质量兜底】\n\n· 超长自动压缩：超过上限才压，且保证\n  色值、光照、carry-over、硬约束一个不丢\n  flux2：单图/文生图 300 词（中文 360 字），\n         多参考图 420 词（中文 504 字）\n  qwen ：文生图 800 词，编辑 900 词\n         （官方编辑任务无篇幅规定，只当失控兜底）\n· 否定句式自动改写：FLUX 不支持负向提示词，\n  「no X / 无X」会换成正向说法\n· 重复短语自动去重（含中英文、英美拼写差异）\n\n缓存（重启 ComfyUI 后照样不花钱）：\n  output\\workflow_llm\\prompt-cache\n\n──────────────────────────\n【输出用什么语言】节点自动定，不用你管\n\n  qwen 纯文生图（没接任何参考图）\n    → 强制英文。这是千问官方 PE-T2I\n      规格的硬规定（\"always in English\"），\n      哪怕你写的是中文，成品正文也是英文。\n\n  其它情况（接了参考图的编辑/合成，\n  以及 flux2 的所有情况）\n    → 跟随你的输入语言。中文指令出中文，\n      英文指令出英文。\n\n  ★ 为什么要自动定：早先靠提示词里写\n    \"看输入语言\"，英文输入经常被串成中文。\n    改成程序先判定、把结论直接写进 system，\n    20/20 稳定。\n\n──────────────────────────\n【skill 放哪里（必须）】\n\n这个节点不内置提示词规范，它去下面这些位置找\n「skill 文件夹」。**找不到就直接报错、不干活**：\n\n  1. 插件输出目录\\skills\\\n     （即 ComfyUI\\output\\workflow_llm\\skills\\）\n  2. C:\\Users\\<你>\\.agents\\skills\\        ← 默认位置\n  3. C:\\Users\\<你>\\Documents\\agent-skills\\\n  4. C:\\Users\\<你>\\.claude\\skills\\\n  5. C:\\Users\\<你>\\.dsh\\skills\\\n\n需要两个文件夹，**名字必须一模一样**：\n\n  · flux2-dev-prompt-engineering   （目标模型 = flux2-dev）\n  · qwen-image-2-1-prompter        （目标模型 = qwen-image-2-1）\n\n每个文件夹里要有 SKILL.md；有 references\\ 子目录的话\n里面的 md 会一起读进去。\n\n★ 最省事的做法：把 skill 文件夹整个拷进\n  C:\\Users\\<你>\\.agents\\skills\\  （第 2 条）\n  拷完重跑即可，不用重启 ComfyUI。\n\n★ 没有 skill 会看到这样的报错：\n  「找不到 skill 目录: flux2-dev-prompt-engineering\n    搜索过: ...（列出了上面这 5 个路径）」\n  照提示把文件夹放进去就行。\n\n★ 只要放一个也能用：只用 flux2 就只放 flux2 那份。\n"
+      ],
+      "widgets_values_named": {
+        "text": "【目标模型怎么定】只读真实来源，不猜提示词文字\n\n★ 连紫线（推荐）\n  把左边 UNetLoader 的「模型」紫线接到\n  「②提示词优化」的「模型输入」上。只读文件名，\n  不加载模型、不占显存。\n\n★ 或把「目标模型」下拉改成 flux2-dev /\n  qwen-image-2-1（最省事，不用连线）\n\n就这两条来源。两条同时给了以紫线为准。\n没连线又没选下拉时它不会自己去画布上找\n加载器 —— 双模型图里扫到的那个不一定是\n这次要用的，会静默用错 skill。\n\n──────────────────────────\n【什么时候花 token】看「生成后控制」\n\n它和你采样器上那个同名同义，且自动跟着走：\n\n  采样器 fixed（不抽卡）\n    → 这里也 fixed。重跑多少次都跳过，\n      给上次那份结果，一字不差、0 token。\n\n  你把采样器切成 randomize（要抽卡）\n    → 切换那次自动重抽一份新提示词；\n      之后一直 randomize 就不重复花钱。\n\n  再切回 fixed → 也重抽一次，换回固定版。\n\n★ 想随时手动换一份：「优化模式」选「重新优化」\n\n改了这些会重调：提示词 / 目标模型 / 你的意图 /\n优化模式 / 思考强度 / 参考图\n（换文件名标签、换 key、换接口都不重调）\n\n──────────────────────────\n【自动质量兜底】\n\n· 超长自动压缩：超过上限才压，且保证\n  色值、光照、carry-over、硬约束一个不丢\n  flux2：单图/文生图 300 词（中文 360 字），\n         多参考图 420 词（中文 504 字）\n  qwen ：文生图 800 词，编辑 900 词\n         （官方编辑任务无篇幅规定，只当失控兜底）\n· 否定句式自动改写：FLUX 不支持负向提示词，\n  「no X / 无X」会换成正向说法\n· 重复短语自动去重（含中英文、英美拼写差异）\n\n缓存（重启 ComfyUI 后照样不花钱）：\n  output\\workflow_llm\\prompt-cache\n\n──────────────────────────\n【输出用什么语言】节点自动定，不用你管\n\n  qwen 纯文生图（没接任何参考图）\n    → 强制英文。这是千问官方 PE-T2I\n      规格的硬规定（\"always in English\"），\n      哪怕你写的是中文，成品正文也是英文。\n\n  其它情况（接了参考图的编辑/合成，\n  以及 flux2 的所有情况）\n    → 跟随你的输入语言。中文指令出中文，\n      英文指令出英文。\n\n  ★ 为什么要自动定：早先靠提示词里写\n    \"看输入语言\"，英文输入经常被串成中文。\n    改成程序先判定、把结论直接写进 system，\n    20/20 稳定。\n"
+      },
+      "color": "#223",
+      "bgcolor": "#335"
+    },
+    {
+      "id": 6,
+      "type": "LoadImage",
+      "pos": [
+        400,
+        1110
+      ],
+      "size": [
+        330,
+        400
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "slot_index": 1,
+          "links": []
+        }
+      ],
+      "title": "参考图2 → <image2>",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.37.4",
+        "Node name for S&R": "LoadImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "example.png",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 5,
+      "type": "LoadImage",
+      "pos": [
+        50,
+        1110
+      ],
+      "size": [
+        330,
+        400
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "slot_index": 1,
+          "links": []
+        }
+      ],
+      "title": "参考图1 → <image1>",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.37.4",
+        "Node name for S&R": "LoadImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "example.png",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 7,
+      "type": "LoadImage",
+      "pos": [
+        750,
+        1110
+      ],
+      "size": [
+        330,
+        400
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "slot_index": 1,
+          "links": []
+        }
+      ],
+      "title": "参考图3 → <image3>",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.37.4",
+        "Node name for S&R": "LoadImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "example.png",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 8,
+      "type": "LoadImage",
+      "pos": [
+        1100,
+        1100
+      ],
+      "size": [
+        330,
+        400
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "slot_index": 1,
+          "links": []
+        }
+      ],
+      "title": "参考图4 → <image4>",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.37.4",
+        "Node name for S&R": "LoadImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "example.png",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 10,
+      "type": "Display Any (rgthree)",
+      "pos": [
+        970,
+        490
+      ],
+      "size": [
+        840,
+        300
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "dir": 3,
+          "label": "输入",
+          "name": "source",
+          "type": "*",
+          "link": 6
+        }
+      ],
+      "outputs": [],
+      "title": "优化后提示词（看这里）",
+      "properties": {
+        "cnr_id": "rgthree-comfy",
+        "ver": "27b4f4cdcf3b127c29d5d8135ac1536ecbd4c383",
+        "Node name for S&R": "Display Any (rgthree)",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "output": ""
+      }
+    },
+    {
+      "id": 2,
+      "type": "CR Text",
+      "pos": [
+        50,
+        690
+      ],
+      "size": [
+        430,
+        260
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "文本",
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "label": "文本",
+          "name": "text",
+          "type": "*",
+          "slot_index": 0,
+          "links": []
+        },
+        {
+          "label": "显示帮助",
+          "name": "show_help",
+          "type": "STRING",
+          "slot_index": 1,
+          "links": []
+        }
+      ],
+      "title": "① 待优化的提示词（在这里改）",
+      "properties": {
+        "cnr_id": "ComfyUI_Comfyroll_CustomNodes",
+        "ver": "d78b780ae43fcf8c6b7c6505e6ffb4584281ceca",
+        "Node name for S&R": "CR Text",
+        "ue_properties": {
+          "widget_ue_connectable": {
+            "text": true
+          },
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "text": "只提取图一的人物/角色删除抛弃图1的场景，只提取图2的场景删除抛弃移除图2的人物/角色\n\n图2场景除人物/角色之外要严格还原\n\n图一人物外观：严格还原图一人物/角色的发型、严格还原图一人物/角色的五官、严格还原图一人物/角色的性感身材、严格还原图一人物/角色的全身皮肤细节\n\n图二场景：严格还原图2场景，严格复制照搬还原图2画面中各部分各画面元素的材质与构图与色调（该光滑的光滑，该粗糙的粗糙），严格复制照搬图2场景，使图4场景完全不变，严格还原图2场景细节，严格保持与图2不变，严格复制照搬还原图2的材质"
+      }
+    },
+    {
+      "id": 11,
+      "type": "UNETLoader",
+      "pos": [
+        70,
+        500
+      ],
+      "size": [
+        350,
+        90
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            7
+          ]
+        }
+      ],
+      "title": "目标模型加载器（只需要连这根紫线，不会执行）",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.37.4",
+        "Node name for S&R": "UNETLoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "flux2_dev_fp8mixed.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "flux2_dev_fp8mixed.safetensors",
+        "weight_dtype": "default"
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 4,
+      "type": "PromptSkillCheck",
+      "pos": [
+        1970,
+        480
+      ],
+      "size": [
+        400,
+        260
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "检查报告",
+          "type": "STRING",
+          "slot_index": 0,
+          "links": [
+            5
+          ]
+        },
+        {
+          "name": "文件路径",
+          "type": "STRING",
+          "slot_index": 1,
+          "links": []
+        }
+      ],
+      "title": "③ 合规自检 (本地·免费)",
+      "properties": {
+        "Node name for S&R": "PromptSkillCheck",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "",
+        "flux2-dev"
+      ],
+      "widgets_values_named": {
+        "提示词": "只提取图一的人物/角色删除抛弃图1的场景，只提取图2的场景删除抛弃移除图2的人物/角色\n\n图2场景除人物/角色之外要严格还原\n\n图一人物外观：严格还原图一人物/角色的发型、严格还原图一人物/角色的五官、严格还原图一人物/角色的性感身材、严格还原图一人物/角色的全身皮肤细节\n\n图二场景：严格还原图2场景，严格复制照搬还原图2画面中各部分各画面元素的材质与构图与色调（该光滑的光滑，该粗糙的粗糙），严格复制照搬图2场景，使图4场景完全不变，严格还原图2场景细节，严格保持与图2不变，严格复制照搬还原图2的材质",
+        "目标模型": "flux2-dev"
+      }
+    },
+    {
+      "id": 9,
+      "type": "Display Any (rgthree)",
+      "pos": [
+        2390,
+        460
+      ],
+      "size": [
+        400,
+        340
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "dir": 3,
+          "label": "输入",
+          "name": "source",
+          "type": "*",
+          "link": 5
+        }
+      ],
+      "outputs": [],
+      "title": "④ 自检报告（看这里）",
+      "properties": {
+        "cnr_id": "rgthree-comfy",
+        "ver": "27b4f4cdcf3b127c29d5d8135ac1536ecbd4c383",
+        "Node name for S&R": "Display Any (rgthree)",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "output": ""
+      }
+    },
+    {
+      "id": 3,
+      "type": "PromptOptimizerSkill",
+      "pos": [
+        510,
+        490
+      ],
+      "size": [
+        430,
+        480
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "模型输入",
+          "shape": 7,
+          "type": "MODEL",
+          "link": 7
+        },
+        {
+          "name": "参考图.image_1",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "参考图.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 2
+        },
+        {
+          "name": "参考图.image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 3
+        },
+        {
+          "name": "参考图.image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "name": "参考图.image_5",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "优化后提示词",
+          "type": "STRING",
+          "slot_index": 0,
+          "links": [
+            6
+          ]
+        },
+        {
+          "name": "报告",
+          "type": "STRING",
+          "slot_index": 1,
+          "links": []
+        },
+        {
+          "name": "文件路径",
+          "type": "STRING",
+          "slot_index": 2,
+          "links": []
+        }
+      ],
+      "title": "② 提示词优化 (带 skill 调 LLM)",
+      "properties": {
+        "Node name for S&R": "PromptOptimizerSkill",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "",
+        "flux2-dev",
+        "标准优化",
+        "fixed",
+        "关闭",
+        "",
+        "opt",
+        "https://api.deepseek.com/v1",
+        "",
+        "deepseek-chat",
+        "deepseek-flash"
+      ],
+      "widgets_values_named": {
+        "提示词": "只提取图一的人物/角色删除抛弃图1的场景，只提取图2的场景删除抛弃移除图2的人物/角色\n\n图2场景除人物/角色之外要严格还原\n\n图一人物外观：严格还原图一人物/角色的发型、严格还原图一人物/角色的五官、严格还原图一人物/角色的性感身材、严格还原图一人物/角色的全身皮肤细节\n\n图二场景：严格还原图2场景，严格复制照搬还原图2画面中各部分各画面元素的材质与构图与色调（该光滑的光滑，该粗糙的粗糙），严格复制照搬图2场景，使图4场景完全不变，严格还原图2场景细节，严格保持与图2不变，严格复制照搬还原图2的材质",
+        "目标模型": "flux2-dev",
+        "优化模式": "标准优化",
+        "生成后控制": "fixed",
+        "思考强度": "关闭",
+        "你的意图": "",
+        "文件名标签": "opt",
+        "接口地址": "",
+        "API_KEY": "",
+        "文字模型": "deepseek-chat",
+        "视觉模型": "deepseek-flash"
+      }
+    }
+  ],
+  "links": [
+    [
+      1,
+      5,
+      0,
+      3,
+      1,
+      "IMAGE"
+    ],
+    [
+      2,
+      6,
+      0,
+      3,
+      2,
+      "IMAGE"
+    ],
+    [
+      3,
+      7,
+      0,
+      3,
+      3,
+      "IMAGE"
+    ],
+    [
+      4,
+      8,
+      0,
+      3,
+      4,
+      "IMAGE"
+    ],
+    [
+      5,
+      4,
+      0,
+      9,
+      0,
+      "STRING"
+    ],
+    [
+      6,
+      3,
+      0,
+      10,
+      0,
+      "STRING"
+    ],
+    [
+      7,
+      11,
+      0,
+      3,
+      0,
+      "MODEL"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "提示词工具",
+      "bounding": [
+        20,
+        390,
+        1890,
+        620
+      ],
+      "color": "#3f5159",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "参考图（可留空）",
+      "bounding": [
+        30,
+        1030,
+        1440,
+        510
+      ],
+      "color": "#432",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "输出显示",
+      "bounding": [
+        1940,
+        390,
+        880,
+        440
+      ],
+      "color": "#234",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ue_links": [],
+    "ds": {
+      "scale": 0.7247295000000042,
+      "offset": [
+        327.04400664688814,
+        -257.9045131344041
+      ]
+    },
+    "frontendVersion": "1.52.7",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
