@@ -10,6 +10,6 @@ dependencies = ["requests"]
 Repository = "https://github.com/DarthVanDerLimdr/comfyui-prompt-skill"
 
 [tool.comfy]
-PublisherId = "DarthVanDerLimdr"
+PublisherId = "darthvanderlimdr"
 DisplayName = "Prompt Skill (FLUX.2 / Qwen-Image)"
 Icon = ""
