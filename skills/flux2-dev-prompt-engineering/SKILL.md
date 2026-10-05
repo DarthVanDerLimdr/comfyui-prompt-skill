@@ -23,7 +23,10 @@ ship it and never wait to be told.
    Any `no / not / without / never / none / 不要 / 没有 / 移除 / 删除 / 抛弃` used to *exclude*
    something gets converted. Procedure and lookup table: **Negation Is Unsupported** below.
    Preservation clauses in edits ("keep the rest unchanged") are the one legitimate
-   exception — they are not exclusions.
+   exception — they are not exclusions. A second one: an **imperative deletion with a generic
+   object** (`discard the scene of image 1`, `remove the person in image 2`) is an edit
+   operation and works — it is the state-describing clause (`image 1's setting does not carry
+   over`) that fails. See *Exclusive sourcing* under Multi-reference.
 
    Do **not** carry this rule to models that do support negatives. Qwen-Image, for example,
    does support negative prompts, so there an exclusion is implementable and belongs in that
@@ -236,7 +239,7 @@ If a positive rewrite still fails: add specificity, **front-load the positive de
 
 ### Single reference
 
-State what changes, and explicitly what must not. Official anti-patterns, all ineffective: `Make it better`, `Improve the lighting`, `Make it more professional`, `Fix the image`.
+State what changes, and state what stays as the finished frame's own content. Official anti-patterns, all ineffective: `Make it better`, `Improve the lighting`, `Make it more professional`, `Fix the image`.
 
 Official patterns:
 
@@ -282,32 +285,94 @@ So for every "take X from image N", also say explicitly what occupies the space 
 in that reference:
 
 ```
-Place the character from image 1 into the environment of image 2. The frame contains only
-image 2's setting — the setting of image 1 does not carry over into the result.
+The frame is the environment of image 2 — its architecture, materials and composition are
+image 2's own — and the character of image 1 stands in it at full scale, lit by image 2's
+ambient light.
 ```
 
 ```
-Use the vase from image 1 on the table from image 2; the room, furniture, and background of
-image 1 are absent, and the table of image 2 remains the only surface.
+The vase of image 1 sits on the table of image 2; the table, its room and its furniture are
+image 2's own surfaces and everything in the frame belongs to image 2's setting.
 ```
 
-Write the replacement as positive content wherever possible ("the frame contains only image 2's
-setting"), because FLUX.2 has no negative channel — but **never simply omit it**. Silence is
-read as permission. This applies to every reference, not just the first: if image 3 supplies
-only a texture, say that image 3 contributes that texture alone, rather than reaching for a
-"nothing else from image 3 appears" construction — that is still a negation, and the model
-will attend to it.
+### Exclusive sourcing: name which reference is the source, never which one is not
 
-**Never describe what the *source* image contains.** You will get it wrong: told to drop
-image 1's surroundings, models routinely write "the sky, clouds and hill of image 1 do not
-appear" when those elements are actually in image 2. Which means the clause now names the
-wrong image's contents, and the model is being told to suppress things that were never there.
-Keep source-side exclusions **generic** — "the background of image 1 is replaced entirely" —
-or say nothing about the source and state positively what the frame does contain.
+This is the failure everyone hits, and the fix is a wording change, not a stronger wording.
+
+Shared content with a reference image gets **doubled**: the text says "X", the latent of image
+N also says "X", and no sentence tells the model that this X is built from the description
+rather than lifted from image N. FLUX.2 resolves it by taking image N's X. The parts of your
+description that overlap a reference are exactly the parts it hands over to that reference.
+
+**Two kinds of negation, and they behave differently.** This is a load-bearing distinction,
+because the obvious rule ("no negations at all") is wrong and costs you a working tool.
+
+| | Example | What the model does | Verdict |
+|---|---|---|---|
+| **Imperative deletion** — a verb with an object | `discard the scene of image 1`, `remove the person in image 2`, `抡弃图1的场景`, `删除图2的人物` | Treats it as an edit operation and **performs it**. This is the shape of the edit instructions the model was trained on | **Keep it.** Field-tested as reliable for dropping the source scene |
+| **State-describing clause** — a description of the output | `the setting of image 1 does not carry over`, `image 1's background is absent`, `nothing else from image 3 appears` | Builds a representation of the named content, then has nothing to act on. The content stays and gets a second, image-side path — the reference latent | **Delete it.** It does no work and re-names the content |
+
+So the rule is not "no negations" — it is **no negations that describe the output**. An
+imperative that names an object and a deletion is doing work; a clause that describes what the
+finished frame lacks is not.
+
+| Do not write (state clause) | Write instead |
+|---|---|
+| "the setting of image 1 does not carry over" | "the frame's setting is image 2's own" |
+| "image 1's background is absent" | "environment: image 2" |
+| "nothing else from image 3 appears" | "texture: image 3" |
+| "only image 2's setting is present" | "the frame is image 2's setting" |
+
+**Use the imperative *and* the ownership sentence.** They cover different failure paths and the
+imperative alone is the one that leaks: it reliably removes the source scene, but if the
+content you dropped also matches something your text describes, the reference latent pulls it
+back. So pair them — command first, owner second:
+
+```
+Discard the scene of image 1; the frame's environment is image 2's own.
+The person of image 1 stands in it at full scale, lit by image 2's ambient light.
+```
+
+That is the whole fix for this failure mode: the command does the work, and the ownership
+sentence closes the way back.
+
+**The pattern: `[element] is the one in image N`.** One positive sentence per element, and the
+element is thereby given a single owner. If an element is not listed, it is not claimed —
+and because silence is read as permission, everything the reference contains that you do not
+assign elsewhere becomes free for the model to reuse. A workable prompt therefore reads as a
+short authority table, not a list of prohibitions:
+
+```
+Person and facial identity: image 1.            Environment, materials, composition: image 2.
+Key direction and colour temperature: image 2.  Figure and pose: image 1.
+```
+
+That table is the whole trick. It costs about twenty words and replaces every suppression
+clause that was pulling the model the other way.
+
+**Write the target frame first, and put every "from image N" after it.** Word order signals
+priority, and a reference image mentioned in the opening sentence is read as the thing being
+reproduced. Establish the result, then slot the sources into it:
+
+- Weak: `Take the person from image 1 and put them in image 2.`
+- Strong: `An empty interior of image 2's kind. The person of image 1 stands in it at full scale.`
+
+**Never write `extract` / `cut out` / `re-composite` / `inpaint`** unless the task really is a
+cut-out. FLUX.2 reads those as operation words and returns a paste-up: cut edges, mismatched
+light, and the source image's own rendering style. Describe the finished frame instead — a
+person standing in a space, already lit and already at the right scale.
+
+**Never name the source image's contents — including inside an imperative.** `抡弃图1的场景`
+is safe because "场景" is generic; `抡弃图1的天空、云朵和草地` is not, because you will
+assign an element to the wrong image — models routinely write "the sky, clouds and hill of
+image 1 do not appear" when those elements are actually in image 2. The command now points at
+the wrong picture, and the real content goes ungoverned. Keep the object of a deletion
+**generic** (`the scene of image 1`, `the background of image 1`), or skip the imperative and
+just let the ownership sentence place everything.
 
 Do not confuse this with a preservation clause. "The rest of image 2 is unchanged" preserves;
-"image 1's setting does not carry over" suppresses. A multi-reference composite usually needs
-both, and they are not interchangeable.
+"image 1's setting does not carry over" is a state clause. A multi-reference composite usually
+needs both a preservation clause and an ownership table, and they are not interchangeable.
 
 ### Attempting geometric change — do not
 
@@ -501,9 +566,18 @@ are in play), that is fine — but say so to yourself explicitly rather than ski
 - [ ] Exact counts, not ranges
 - [ ] Editing: change stated, preservation explicitly enumerated, one pass only
 - [ ] Multi-reference: every reference numbered and given a role
-- [ ] **Carry-over suppressed per reference** — for every "take X from image N", the prompt
-      also states what occupies the space X left behind (e.g. "the frame contains only image
-      2's setting"). Never left silent; silence reads as permission
+- [ ] **Every reference given an exclusive source, positively** — for every "take X from
+      image N", the prompt also says which reference owns the rest ("the frame is image 2's
+      setting"). Never left silent; silence reads as permission
+- [ ] **Zero state-describing negations** — scan for "image N does not / is absent / nothing
+      else from image N" and delete it. An imperative deletion (`discard the scene of image 1`)
+      is allowed and works; a clause describing what the output lacks does not. If a state
+      clause seems to be doing real work, its content was never assigned an owner: go back and
+      assign one instead of re-strengthening the clause
+- [ ] **No operation verbs** — no `extract` / `cut out` / `re-composite` / `inpaint`; the
+      finished frame is described, not the procedure
+- [ ] **Style, lens and frame declared** — an empty style slot is filled by the model's own
+      photographic prior, which is the usual reason a specified environment does not survive
 - [ ] **Reusable as a template** — no invented subjects/species/locations/scene objects;
       references stay generic ("the character in image 1")
 - [ ] Upsampling decision made explicitly (it is NOT automatic on [dev])
