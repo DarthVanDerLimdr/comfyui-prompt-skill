@@ -2031,7 +2031,12 @@ class PromptSkillCheck:
             issues.append(f"⚠ 含填充词 {hit} —— 官方点名这些会把画面拉向塑料 CGI，建议删掉换成相机/镜头描述")
 
         # 排除式否定
-        neg_hit = [w for w in NEG_WORDS if w in low]
+        # ⚠️ 命令式删除（抛弃/删除/移除 + 对象）不在此列 —— 实测它能被当作编辑
+        #    操作执行，是有效写法。真正接不住的是描述成品状态的从句
+        #    （"…不进入结果" / "does not carry over"），那种由下面的状态从句检查报。
+        _low = re.sub(r'(?:抛弃|删除|移除)(?=[\s\u4e00-\u9fff])', '', low)
+        _low = re.sub(r'\b(?:remove|discard)\b', '', _low)
+        neg_hit = [w for w in NEG_WORDS if w in _low]
         if neg_hit:
             issues.append(f"⚠ 含排除式否定 {neg_hit} —— [dev] 对否定处理差，"
                           f"建议改成正向描述（保留条款「保持X不变」是合法的，排除式「不要X」才是有问题的）")
@@ -2046,6 +2051,67 @@ class PromptSkillCheck:
         if hexes:
             issues.append(f"含 {len(hexes)} 个十六进制色值 {hexes[:6]}"
                           f" —— 确认每个都绑定了具体物体（官方实测色相会偏 5–10°，别指望精准）")
+
+
+        # ── 参考图结构规则（与 skill 的 Exclusive sourcing 一节同源）──
+        # 只在"有参考图"时才检查：纯文生图没有归权问题。
+        _has_ref = bool(re.search(r'<image\d+>|\bimage\s*\d+\b|图\s*\d+', text))
+
+        # (a) 状态从句：描述成品里"没有什么"——无负向通道，接不住内容，只会重提一遍
+        _STATE_CLAUSE = re.compile(
+            r'(?:不进入|不参与|不会出现|不带(?:过来)?|不跟(?:过来)?|不会带|不做保留)'
+            r'|\b(?:does\s+not\s+carry\s+over|is\s+absent|are\s+absent|'
+            r'contributes\s+nothing|nothing\s+else\s+from\s+image)'
+            r'|\b(?:is|are)\s+not\s+(?:present|included|used|carried)',
+            re.I)
+        _hits = _STATE_CLAUSE.findall(text)
+        if _hits:
+            _sample = re.search(_STATE_CLAUSE, text)
+            _ctx = text[max(0, _sample.start() - 18):_sample.end() + 18].replace("\n", " ")
+            issues.append(
+                f"状态从句 {len(_hits)} 处（如「…{_ctx.strip()}…」）——"
+                "FLUX.2 没有负向通道，这类句子只是把源图内容又说了一遍；"
+                "删掉它，或改成正向归权声明「画面环境只由图N 提供」")
+
+        # (b) 操作动词：会被当成抠图/粘贴指令，返回拼贴感（边缘硬、光不一致、风格随源图）
+        _OP_VERB = re.compile(
+            r'提取|抠出|抠图|拼合|重新拼合|粘贴|抠取'
+            r'|\b(?:extract|cut\s*out|re-?composite|re-?compose|inpaint|paste)\b', re.I)
+        _hits = _OP_VERB.findall(text)
+        if _hits:
+            issues.append(
+                f"操作动词 {len(_hits)} 处（{'、'.join(sorted(set(h if isinstance(h, str) else h[0] for h in _hits))) }）——"
+                "这类词让模型按抠图粘贴执行，而不是描述成品帧；"
+                "改成直接描述结果：人物已经站在那个空间里、已经受好光、尺度已经对上")
+
+        # (c) 有多张图却没有归权声明
+        _imgs = set(re.findall(r'<image(\d+)>|\bimage\s*(\d+)\b|图\s*(\d+)', text))
+        _imgs = {next(x for x in m if x) for m in _imgs}
+        _OWNER = re.compile(
+            r'(?:只来自|只由|唯一来源|仅来自|只提供)\s*图\s*\d+'
+            r'|图\s*\d+\s*只(?:提供|负责)'
+            r'|\bonly\s+from\s+image\s*\d+|\bimage\s*\d+\s*(?:alone|only)\b'
+            r'|\b(?:from|of)\s+image\s*\d+\s*$',
+            re.I | re.M)
+        # 也接受"元素：图N"这种归权表写法
+        _OWNER_TABLE = re.compile(r'[：:]\s*(?:图|<image)\s*\d+|\bimage\s*\d+\b\s*[.。]', re.I)
+        if len(_imgs) >= 2 and not (_OWNER.search(text) or _OWNER_TABLE.search(text)):
+            issues.append(
+                f"提到 {len(_imgs)} 张参考图，但没有任何一句把元素归给唯一的来源——"
+                "内容与参考图重合时会被直接拿走。补一句归权声明："
+                "「人物与身份 = 图1；环境、材质、构图 = 图2；光源与色温 = 图2」"
+                "（英文：Person and identity: image 1. Environment: image 2.）")
+
+        # (d) 语序：参考图出现在最前面的句子里，会被当成"要还原的那张"
+        # 只在 >=2 张图时才判断：单图编辑本来就该先说"改图1 的什么"
+        _first = re.split(r'[。．.!?！？\n]', text.strip())
+        _first = next((s for s in _first if s.strip()), "")
+        if len(_imgs) >= 2 and \
+           re.search(r'<image\d+>|\bimage\s*\d+\b|图\s*\d+', _first) and \
+           not re.search(r'\b(?:discard|remove)\b|抛弃|删除|移除', _first, re.I):
+            issues.append(
+                "第一句就出现了参考图编号——开头提到的图会被当成"
+                "「要还原的那张」，抢走画布。先写目标画面，再写「来自图N」")
 
         # 参考图编号
         if re.search(r"<image\d+>", text) and 目标模型 == "flux2-dev":
