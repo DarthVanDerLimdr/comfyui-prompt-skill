@@ -1,6 +1,6 @@
 [project]
 name = "comfyui-prompt-skill"
-version = "1.0.0"
+version = "1.1.0"
 description = "Prompt optimizer for FLUX.2 [dev] and Qwen-Image 2.1: calls an OpenAI-compatible LLM with a prompt-engineering spec (skill), plus a free local prompt checker."
 license = { file = "LICENSE" }
 requires-python = ">=3.9"
