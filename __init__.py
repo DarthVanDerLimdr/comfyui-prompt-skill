@@ -908,14 +908,16 @@ class PromptOptimizerSkill:
         cached = None if _reroll else _cache_read(_ck)
 
         if cached:
-            # 老缓存里可能留着没软化过的否定句式，读出来也过一遍，保证一致
-            _cached_result, _ = _soften_negation(cached["result"])
+            # 老缓存里可能留着没软化过的否定句式，读出来也过一遍，保证一致。
+            # ⚠️ 只对 flux2 做 —— 这是 FLUX.2 专属规则，别的模型有自己的否定处理。
+            _flux2 = (model_key == "flux2-dev")
+            _cached_result, _ = _soften_negation(cached["result"], enabled=_flux2)
             # 旧缓存可能是"加压缩兜底之前"存的超长结果 —— 走缓存路径也要压一次，
             # 否则命中缓存就永远拿不到压缩后的版本。
             _cached_result, _cn = compress_if_too_long(
                 _cached_result, cfg, build_system_prompt(model_key, skill_text, eff_mode, text,
                                                         n_images=len(img_urls)),
-                word_budget(model_key, len(img_urls)), 思考强度)
+                word_budget(model_key, len(img_urls)), 思考强度, soften=_flux2)
             if _cn:
                 print(f"[提示词优化] 缓存条目{_cn}")
                 try:                       # 压缩后写回缓存，下次直接就拿到压缩版
@@ -949,7 +951,9 @@ class PromptOptimizerSkill:
             return (text, f"调用失败: {err}\n\n配置文件: {CONFIG_PATH}", "")
 
         result = _strip_fence(result).strip()
-        result, _negfix = _soften_negation(result)
+        # FLUX.2 专属：只有它需要把否定改成正向（没有负向通道）
+        _flux2 = (model_key == "flux2-dev")
+        result, _negfix = _soften_negation(result, enabled=_flux2)
         # 失控重复兜底：实测 qwen 那条"把排除写进负向通道"的指令会让模型
         # 罗列到退化循环（一路重复"…陈设元素与陈设元素与…"到 7000 词当量）
         result, _gwhy = _guard_runaway(result)
@@ -958,7 +962,7 @@ class PromptOptimizerSkill:
         # 篇幅兜底：提示词里写上限只能降低概率、压不住，超长就自动再压一次
         _budget = word_budget(model_key, len(img_urls))
         result, _cmpnote = compress_if_too_long(result, cfg, system_prompt,
-                                                _budget, 思考强度)
+                                                _budget, 思考强度, soften=_flux2)
         if _cmpnote:
             print(f"[提示词优化] {_cmpnote}")
         _cache_write(_ck, result, {"model_key": model_key, "mode": eff_mode,
@@ -1122,7 +1126,7 @@ def word_budget(model_key, n_images):
     return words, int(words * 1.2)
 
 
-def compress_if_too_long(result, cfg, system_prompt, budget, thinking="关闭"):
+def compress_if_too_long(result, cfg, system_prompt, budget, thinking="关闭", soften=True):
     """超长就压一次。返回 (文本, 说明)。压缩失败就原样返回，不阻塞。
 
     budget 是 (词数上限, 中文字数上限) 二元组 —— 中文看字数、英文看词数，
@@ -1161,7 +1165,7 @@ def compress_if_too_long(result, cfg, system_prompt, budget, thinking="关闭"):
     if err or not out:
         return result, f"压缩失败({err})，保留原稿"
     out = _strip_fence(out)
-    out, _ = _soften_negation(out)
+    out, _ = _soften_negation(out, enabled=soften)
     eff2, words2, cjk2 = _count_words(out)
     # 没压动（长度没降）就退回原稿
     if eff2 >= eff:
@@ -1262,8 +1266,16 @@ _SHADOWLESS_DUP = re.compile(r'(?i)(even\s+)?shadowless\s+(illumination|lighting
 _BARE_SHADOWLESS = re.compile(r'(?i)\bshadowless\s+surfaces?\b')
 
 
-def _soften_negation(text):
-    """把风格/光照类否定句换成正向等价说法。返回 (新文本, 改了几处)"""
+def _soften_negation(text, enabled=True):
+    """把风格/光照类否定句换成正向等价说法。返回 (新文本, 改了几处)
+
+    ⚠️ 这是 **FLUX.2 专属**规则：FLUX.2 没有负向通道，所以否定句必须改成正向描述。
+    而 Qwen-Image / Krea-2 这类**有负向通道**的模型不需要——强行改写反而是污染
+    （用户写的「阳光不落在脸上」在原模型里是合法且有效的表达）。
+    所以生产路径按目标模型传 enabled，默认 True 只为兼容老的测试脚本。
+    """
+    if not enabled:
+        return text, 0
     n = 0
     for rx, rep in _NEG_SENT:
         text, k = rx.subn(rep, text)
