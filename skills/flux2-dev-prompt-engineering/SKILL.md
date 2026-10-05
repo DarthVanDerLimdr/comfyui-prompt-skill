@@ -309,7 +309,7 @@ because the obvious rule ("no negations at all") is wrong and costs you a workin
 
 | | Example | What the model does | Verdict |
 |---|---|---|---|
-| **Imperative deletion** — a verb with an object | `discard the scene of image 1`, `remove the person in image 2`, `抡弃图1的场景`, `删除图2的人物` | Treats it as an edit operation and **performs it**. This is the shape of the edit instructions the model was trained on | **Keep it.** Field-tested as reliable for dropping the source scene |
+| **Imperative deletion** — a verb with an object | `discard the scene of image 1`, `remove the person in image 2`, `抛弃图1的场景`, `删除图2的人物` | Treats it as an edit operation and **performs it**. This is the shape of the edit instructions the model was trained on | **Keep it.** Field-tested as reliable for dropping the source scene |
 | **State-describing clause** — a description of the output | `the setting of image 1 does not carry over`, `image 1's background is absent`, `nothing else from image 3 appears` | Builds a representation of the named content, then has nothing to act on. The content stays and gets a second, image-side path — the reference latent | **Delete it.** It does no work and re-names the content |
 
 So the rule is not "no negations" — it is **no negations that describe the output**. An
@@ -362,8 +362,8 @@ cut-out. FLUX.2 reads those as operation words and returns a paste-up: cut edges
 light, and the source image's own rendering style. Describe the finished frame instead — a
 person standing in a space, already lit and already at the right scale.
 
-**Never name the source image's contents — including inside an imperative.** `抡弃图1的场景`
-is safe because "场景" is generic; `抡弃图1的天空、云朵和草地` is not, because you will
+**Never name the source image's contents — including inside an imperative.** `抛弃图1的场景`
+is safe because "场景" is generic; `抛弃图1的天空、云朵和草地` is not, because you will
 assign an element to the wrong image — models routinely write "the sky, clouds and hill of
 image 1 do not appear" when those elements are actually in image 2. The command now points at
 the wrong picture, and the real content goes ungoverned. Keep the object of a deletion
