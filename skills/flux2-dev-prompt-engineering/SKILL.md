@@ -374,6 +374,39 @@ Do not confuse this with a preservation clause. "The rest of image 2 is unchange
 "image 1's setting does not carry over" is a state clause. A multi-reference composite usually
 needs both a preservation clause and an ownership table, and they are not interchangeable.
 
+**Reusable slot template.** Four constraints hold whatever the content is, so the skeleton is
+worth keeping rather than re-deriving: command + ownership sentence (both, not one), target
+frame before sources, no state clauses and no operation verbs, and frame size / lens declared.
+Fill the brackets; leave the structure alone.
+
+```
+The frame is [image N]'s [environment type]: its space, furnishing layout, surfaces and
+composition are [image N]'s own, [empty-state]. Discard the scene of [image M]; the frame's
+setting is [image N]'s.
+
+The [subject] of [image M] stands in that space at full scale, placed by [image N]'s
+perspective — the same [2-4 attributes worth keeping]. The [subject] is lit by [image N]'s
+ambient light: key direction, tonal falloff and contact shadow on [the surface] match
+[image N]'s. Materials render as [image N]'s surfaces do — [gloss carries highlights,
+roughness carries grain] — with [image N]'s colour grade and colour temperature.
+
+[Frame size], [lens], [aperture], [camera height], [grain].
+```
+
+| Slot | Fill with | Why |
+|---|---|---|
+| `[image N]` environment source | the one image supplying the space — this number appears alone | one owner per element; two numbers competing over the frame is what splits the canvas |
+| `[image M]` subject source | the one image supplying the subject | as above |
+| `[empty-state]` | `empty interior`, `deserted` | a positive property; never "remove the person" |
+| `[attributes worth keeping]` | 2–4 you actually care about | listing everything dilutes; listing none means no owner was assigned |
+| `[the surface]` | floor under the feet, table under the hands | the contact shadow is what makes a figure sit in a space |
+| `[Frame size] [lens] [aperture]` | `Full-frame, 35mm, f/2.8` | **required** — left empty, the model fills the slot with its own photographic prior and your specified environment loses |
+| `[grain]` | `fine film grain` | a little imperfection keeps the frame off the CGI look |
+
+Write the same skeleton in whatever language the user wrote in — but keep **one** numbering
+convention throughout (`image 1`/`image 2` or `图1`/`图2`, never mixed, because a mixed pair
+reads as two different images).
+
 ### Attempting geometric change — do not
 
 **"Make the cards 30% larger", "move the subject 10% left", "crop tighter" have no meaning in

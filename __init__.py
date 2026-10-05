@@ -2113,6 +2113,34 @@ class PromptSkillCheck:
                 "第一句就出现了参考图编号——开头提到的图会被当成"
                 "「要还原的那张」，抢走画布。先写目标画面，再写「来自图N」")
 
+        # (e) 多图但缺归权声明（与上面 (c) 同源，但只认"明确的归属句"，更严）
+        if len(_imgs) >= 2:
+            _OWN_STRICT = re.compile(
+                r'(?:只来自|只由|唯一来源|仅来自|只提供|唯一提供)\s*图\s*\d+'
+                r'|图\s*\d+\s*只(?:提供|负责)'
+                r'|\bonly\s+(?:from|provided by)\s+image\s*\d+'
+                r'|\bimage\s*\d+\s+(?:alone|only)\b'
+                r'|[：:]\s*(?:图|<image)\s*\d+',
+                re.I)
+            if not _OWN_STRICT.search(text):
+                issues.append(
+                    f"提到 {len(_imgs)} 张参考图，却没有一句明确的归属句——"
+                    "内容与参考图重合时会被直接拿走。补一句："
+                    "「画面的环境只由图2 提供」，或写成归权表"
+                    "「人物与身份 = 图1；环境与材质 = 图2」")
+
+        # (f) 画幅 / 镜头 / 光圈缺失：留空 = 模型用自己的审美先验填，指定的背景会被压掉
+        _CAM = re.compile(
+            r'\b\d{2,4}\s*mm\b|\bf/\s*\d(?:\.\d)?\b|\b(?:full[- ]frame|medium format|'
+            r'35mm|50mm|85mm|telephoto|wide[- ]angle)\b'
+            r'|\d{3,4}\s*[x×]\s*\d{3,4}|全画幅|中画幅|焦段|镜头|光圈|画幅|广角|长焦',
+            re.I)
+        if not _CAM.search(text):
+            issues.append(
+                "没有交代画幅 / 镜头 / 光圈——风格槽留空时，模型会用自己的审美先验把它填满"
+                "（常见是影棚或时尚大片感），这是「指定的背景被它自己的风格压掉」的首要原因。"
+                "补一句：Full-frame, 35mm, f/2.8, eye-level, fine film grain")
+
         # 参考图编号
         if re.search(r"<image\d+>", text) and 目标模型 == "flux2-dev":
             issues.append("用了 <imageN> 标签 —— 这是 Qwen 的写法；[dev] 用 image 1 / image 2（英文+数字）")
